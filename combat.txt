@@ -1,0 +1,49 @@
+# 1️⃣ Load required libraries
+library(sva)       # for ComBat batch correction
+library(ggplot2)   # for PCA visualization
+
+# 2️⃣ Load merged data
+expr <- read.csv("E:/Sagor(work)/for_combat.csv", row.names = 1, check.names = FALSE)
+
+# 3️⃣ Define batch info
+# Corrected number of samples for GSE46517
+batch <- c(rep("GSE15605", 74),
+           rep("GSE3189", 70),
+           rep("GSE46517", 100))
+
+# Check if number of samples matches batch vector
+if(ncol(expr) != length(batch)) stop("Number of samples does not match batch vector!")
+
+# 4️⃣ Apply ComBat for batch correction
+combat_expr <- ComBat(dat = as.matrix(expr),
+                      batch = batch,
+                      mod = NULL,
+                      par.prior = TRUE,
+                      prior.plots = FALSE)
+
+# 5️⃣ PCA visualization before and after batch correction
+
+# Before ComBat
+pca_before <- prcomp(t(expr), scale. = TRUE)
+pca_df_before <- data.frame(PC1 = pca_before$x[,1],
+                            PC2 = pca_before$x[,2],
+                            Batch = batch)
+
+ggplot(pca_df_before, aes(x = PC1, y = PC2, color = Batch)) +
+  geom_point(size = 3) +
+  theme_minimal() +
+  ggtitle("PCA before ComBat")
+
+# After ComBat
+pca_after <- prcomp(t(combat_expr), scale. = TRUE)
+pca_df_after <- data.frame(PC1 = pca_after$x[,1],
+                           PC2 = pca_after$x[,2],
+                           Batch = batch)
+
+ggplot(pca_df_after, aes(x = PC1, y = PC2, color = Batch)) +
+  geom_point(size = 3) +
+  theme_minimal() +
+  ggtitle("PCA after ComBat")
+
+# 6️⃣ Save batch-corrected matrix
+write.csv(combat_expr, "E:/Sagor(work)/for_combat_corrected.csv")
